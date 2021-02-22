@@ -1,29 +1,22 @@
 <?php
 
-declare(strict_types=1);
+use App\Kernel;
+use Symfony\Component\Dotenv\Dotenv;
+use Symfony\Component\ErrorHandler\Debug;
+use Symfony\Component\HttpFoundation\Request;
 
-use Slim\Http\Request;
-use Slim\Http\Response;
+require dirname(__DIR__).'/vendor/autoload.php';
 
-chdir(dirname(__DIR__));
-require 'vendor/autoload.php';
+(new Dotenv())->bootEnv(dirname(__DIR__).'/.env');
 
-http_response_code(500);
+if ($_SERVER['APP_DEBUG']) {
+    umask(0000);
 
-(function () {
-    $app = new \Slim\App([
-        'settings' => [
-            'addContentLengthHeader' => false,
-            'displayErrorDetails' => (bool)getenv('APP_DEBUG'),
-        ],
-    ]);
+    Debug::enable();
+}
 
-    $app->get('/', function (Request $request, Response $response) {
-        return $response->withJson([
-            'name' => 'Manager',
-            'param' => $request->getQueryParam('param'),
-        ]);
-    });
-
-    $app->run();
-})();
+$kernel = new Kernel($_SERVER['APP_ENV'], (bool) $_SERVER['APP_DEBUG']);
+$request = Request::createFromGlobals();
+$response = $kernel->handle($request);
+$response->send();
+$kernel->terminate($request, $response);
